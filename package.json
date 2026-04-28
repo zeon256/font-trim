@@ -2,7 +2,7 @@
   "name": "fonttrim",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
+  "license": "(MIT OR Apache-2.0)",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

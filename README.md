@@ -84,4 +84,4 @@ Output goes to `dist/`. Deploy it anywhere that serves static files — no serve
 
 ## License
 
-MIT
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT License](LICENSE-MIT) at your option.
