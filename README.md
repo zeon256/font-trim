@@ -1,3 +1,5 @@
+<p align="center"><img src="public/favicon.svg" alt="FontTrim logo" width="46" height="44"></p>
+
 # FontTrim
 
 Trim unwanted glyphs from font files for leaner web loading.

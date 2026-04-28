@@ -14,7 +14,7 @@ import {
 } from "./lib/font-engine";
 import type { ParsedFont } from "./lib/font-engine";
 import { formatBytes } from "./lib/utils";
-import { Scissors, Loader2 } from "lucide-react";
+import { Scissors, Loader2, Github } from "lucide-react";
 
 type AppState = "upload" | "loading" | "loaded" | "processing" | "error";
 
@@ -151,7 +151,17 @@ export default function App() {
             <span>Fonts never leave your browser</span>
             <span className="w-1 h-1 rounded-full bg-border" />
             <span>Powered by HarfBuzz WASM</span>
-          </div>
+            <span className="w-1 h-1 rounded-full bg-border" />
+            <a
+              href="https://github.com/zeon256/font-trim"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:text-accent transition-colors"
+            >
+              <Github className="w-3 h-3" />
+              Star on GitHub
+            </a>
+        </div>
         </div>
       </div>
     );
@@ -207,6 +217,15 @@ export default function App() {
           )}
         </div>
         <div className="flex items-center gap-4">
+          <a
+            href="https://github.com/zeon256/font-trim"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-foreground-muted hover:text-accent transition-colors"
+            aria-label="Star on GitHub"
+          >
+            <Github className="w-5 h-5" />
+          </a>
           {parsedFont && (
             <div className="flex items-center gap-3 text-sm text-foreground-muted">
               <span className="font-mono">{parsedFont.metadata.familyName}</span>
