@@ -14,7 +14,9 @@ import {
 } from "./lib/font-engine";
 import type { ParsedFont } from "./lib/font-engine";
 import { formatBytes } from "./lib/utils";
-import { Scissors, Loader2, Github } from "lucide-react";
+import { Scissors, Loader2 } from "lucide-react";
+import { GitHubIcon } from "./components/GitHubIcon";
+
 
 type AppState = "upload" | "loading" | "loaded" | "processing" | "error";
 
@@ -158,7 +160,7 @@ export default function App() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 hover:text-accent transition-colors"
             >
-              <Github className="w-3 h-3" />
+              <GitHubIcon className="w-3 h-3" />
               Star on GitHub
             </a>
         </div>
@@ -224,7 +226,7 @@ export default function App() {
             className="text-foreground-muted hover:text-accent transition-colors"
             aria-label="Star on GitHub"
           >
-            <Github className="w-5 h-5" />
+            <GitHubIcon className="w-5 h-5" />
           </a>
           {parsedFont && (
             <div className="flex items-center gap-3 text-sm text-foreground-muted">
