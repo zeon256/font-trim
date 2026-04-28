@@ -1,11 +1,14 @@
+# FontTrim
 
+<p align="center">
 [![CI/CD](https://github.com/zeon256/font-trim/actions/workflows/release.yml/badge.svg)](https://github.com/zeon256/font-trim/actions/workflows/release.yml)
 [![Deploy](https://github.com/zeon256/font-trim/actions/workflows/deploy.yml/badge.svg)](https://github.com/zeon256/font-trim/actions/workflows/deploy.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE-MIT)
+</p>
 
 <p align="center"><img src="logo.png" alt="FontTrim logo"></p>
 
-Trim unwanted glyphs from font files for leaner web loading.
+<p align="center">Trim unwanted glyphs from font files for leaner web loading.</p>
 
 ![FontTrim editor](docs/editor-viewport.png)
 
