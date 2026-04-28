@@ -37,7 +37,7 @@ export interface ParsedFont {
 
 export async function initWasm(): Promise<void> {
   if (wasmInitialized) return;
-  const response = await fetch("/hb-subset.wasm");
+  const response = await fetch(`${import.meta.env.BASE_URL}hb-subset.wasm`);
   await init(response);
   wasmInitialized = true;
 }
