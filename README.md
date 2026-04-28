@@ -1,4 +1,4 @@
-# FontTrim
+<div align="center"><h1>FontTrim</h1></div>
 
 <div align="center">
 
