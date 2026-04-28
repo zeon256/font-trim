@@ -1,6 +1,6 @@
-<p align="center"><img src="logo.png" alt="FontTrim logo"></p>
-
 # FontTrim
+
+<p align="center"><img src="logo.png" alt="FontTrim logo"></p>
 
 Trim unwanted glyphs from font files for leaner web loading.
 
