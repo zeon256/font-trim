@@ -1,4 +1,4 @@
-<p align="center"><img src="logo.png" alt="FontTrim logo" width="46" height="44"></p>
+<p align="center"><img src="logo.png" alt="FontTrim logo"></p>
 
 # FontTrim
 
