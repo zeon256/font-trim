@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 interface PreviewPanelProps {
   fontFamily: string;
@@ -8,18 +8,25 @@ interface PreviewPanelProps {
 export function PreviewPanel({ fontFamily, fontData }: PreviewPanelProps) {
   const [text, setText] = useState("The quick brown fox jumps over the lazy dog");
   const [fontSize, setFontSize] = useState(32);
-  const fontLoadedRef = useRef(false);
 
   useEffect(() => {
-    if (!fontData || fontLoadedRef.current) return;
+    if (!fontData) return;
+
     const face = new FontFace(fontFamily, fontData);
+    let cancelled = false;
+
     face
       .load()
-      .then(() => {
-        document.fonts.add(face);
-        fontLoadedRef.current = true;
+      .then((loadedFace) => {
+        if (cancelled) return;
+        document.fonts.add(loadedFace);
       })
       .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      document.fonts.delete(face);
+    };
   }, [fontFamily, fontData]);
 
   const effectiveFamily = fontData ? `"${fontFamily}", sans-serif` : "sans-serif";

@@ -12,11 +12,14 @@ import {
   initWasm,
   downloadFile,
 } from "./lib/font-engine";
-import type { ParsedFont } from "./lib/font-engine";
+import type { OutputFormat, ParsedFont } from "./lib/font-engine";
 import { formatBytes } from "./lib/utils";
 import { Scissors, Loader2 } from "lucide-react";
 import { GitHubIcon } from "./components/GitHubIcon";
 
+function asArrayBuffer(data: Uint8Array): ArrayBuffer {
+  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+}
 
 type AppState = "upload" | "loading" | "loaded" | "processing" | "error";
 
@@ -31,6 +34,7 @@ export default function App() {
   const [subsetSize, setSubsetSize] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [wasmReady, setWasmReady] = useState(false);
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>("sfnt");
   const [fontFaceName] = useState(() => `fonttrim-preview-${Date.now()}`);
 
   // Initialize WASM on mount
@@ -51,6 +55,7 @@ export default function App() {
       const allIds = new Set(parsed.glyphs.map((g) => g.id));
       setSelectedIds(allIds);
       setSubsetSize(null);
+      setOutputFormat(parsed.defaultOutputFormat);
       setState("loaded");
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "Failed to parse font");
@@ -116,16 +121,19 @@ export default function App() {
       const keepCodePoints = parsedFont.glyphs
         .filter((g) => selectedIds.has(g.id))
         .map((g) => g.codePoint);
-      const result = await subsetFont(parsedFont.originalData, keepCodePoints);
+      const result = await subsetFont(parsedFont.sfntData, keepCodePoints, {
+        outputFormat,
+        sfntFormat: parsedFont.sfntFormat,
+      });
       const baseName = fontFile?.name.replace(/\.[^.]+$/, "") || "font";
-      downloadFile(result, `${baseName}-trimmed.ttf`);
-      setSubsetSize(result.byteLength);
+      downloadFile(result.data, `${baseName}-trimmed.${result.extension}`, result.mimeType);
+      setSubsetSize(result.data.byteLength);
       setState("loaded");
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "Subsetting failed");
       setState("error");
     }
-  }, [parsedFont, selectedIds, fontFile]);
+  }, [parsedFont, selectedIds, fontFile, outputFormat]);
 
   const keepCount = selectedIds.size;
   const totalCount = parsedFont?.glyphs.length ?? 0;
@@ -163,7 +171,7 @@ export default function App() {
               <GitHubIcon className="w-3 h-3" />
               Star on GitHub
             </a>
-        </div>
+          </div>
         </div>
       </div>
     );
@@ -285,7 +293,7 @@ export default function App() {
                 <div className="p-4 border-r border-border">
                   <PreviewPanel
                     fontFamily={fontFaceName}
-                    fontData={parsedFont.originalData.buffer as ArrayBuffer}
+                    fontData={asArrayBuffer(parsedFont.sfntData)}
                   />
                 </div>
                 <div className="p-4">
@@ -296,6 +304,8 @@ export default function App() {
                     keepCount={keepCount}
                     isProcessing={state === "processing"}
                     onDownload={handleDownload}
+                    outputFormat={outputFormat}
+                    onOutputFormatChange={setOutputFormat}
                   />
                 </div>
               </div>

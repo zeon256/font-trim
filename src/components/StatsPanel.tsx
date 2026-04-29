@@ -1,5 +1,6 @@
 import { formatBytes, formatPercent } from "../lib/utils";
-import { Download, ArrowRight, Loader2 } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
+import type { OutputFormat } from "../lib/font-engine";
 
 interface StatsPanelProps {
   originalSize: number;
@@ -8,6 +9,8 @@ interface StatsPanelProps {
   keepCount: number;
   isProcessing: boolean;
   onDownload: () => void;
+  outputFormat: OutputFormat;
+  onOutputFormatChange: (format: OutputFormat) => void;
 }
 
 export function StatsPanel({
@@ -17,10 +20,12 @@ export function StatsPanel({
   keepCount,
   isProcessing,
   onDownload,
+  outputFormat,
+  onOutputFormatChange,
 }: StatsPanelProps) {
   const removedCount = originalCount - keepCount;
-  const removalPercent = originalCount > 0 ? removedCount / originalCount : 0;
   const estimatedSize = subsetSize ?? null;
+  const outputDisabled = isProcessing || keepCount === 0;
   const savingsPercent =
     estimatedSize && originalSize > 0 ? 1 - estimatedSize / originalSize : null;
 
@@ -71,11 +76,23 @@ export function StatsPanel({
         </div>
       </div>
 
-      <button
-        onClick={onDownload}
-        disabled={isProcessing || keepCount === 0}
-        className="btn btn-primary w-full"
-      >
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor="output-format" className="text-xs font-medium text-foreground-muted">
+          Output
+        </label>
+        <select
+          id="output-format"
+          value={outputFormat}
+          onChange={(event) => onOutputFormatChange(event.target.value as OutputFormat)}
+          disabled={outputDisabled}
+          className="flex-1 max-w-[180px] rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-foreground outline-none transition-colors focus:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="sfnt">SFNT (.ttf/.otf)</option>
+          <option value="woff2">WOFF2 (.woff2)</option>
+        </select>
+      </div>
+
+      <button onClick={onDownload} disabled={outputDisabled} className="btn btn-primary w-full">
         {isProcessing ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />

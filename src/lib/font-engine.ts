@@ -1,5 +1,6 @@
 import opentype from "opentype.js";
 import { init, subset } from "hb-subset-wasm";
+import { woffDecode } from "woff-lib/woff/decode";
 import { getUnicodeCategory, isEmoji } from "./utils";
 
 let wasmInitialized = false;
@@ -27,17 +28,111 @@ export interface FontMetadata {
   descender: number;
 }
 
-export interface ParsedFont {
+export type InputFontFormat = "ttf" | "otf" | "woff" | "woff2";
+export type SfntFontFormat = "ttf" | "otf";
+export type OutputFormat = "sfnt" | "woff2";
+
+export interface NormalizedFontData {
+  originalData: Uint8Array;
+  sfntData: Uint8Array;
+  inputFormat: InputFontFormat;
+  sfntFormat: SfntFontFormat;
+}
+
+export interface ParsedFont extends NormalizedFontData {
   metadata: FontMetadata;
   glyphs: GlyphInfo[];
   originalSize: number;
-  originalData: Uint8Array;
+  defaultOutputFormat: OutputFormat;
   opentypeFont: opentype.Font;
+}
+
+export interface SubsetFontOptions {
+  outputFormat: OutputFormat;
+  sfntFormat: SfntFontFormat;
+}
+
+export interface SubsetFontResult {
+  data: Uint8Array;
+  extension: SfntFontFormat | "woff2";
+  mimeType: "font/sfnt" | "font/woff2";
+}
+
+const SUPPORTED_FONT_FORMATS = "TTF, OTF, WOFF, and WOFF2";
+async function decodeWoff2(data: Uint8Array): Promise<Uint8Array> {
+  const { decompress } = await import("woff2-encoder");
+  return decompress(data);
+}
+
+async function encodeWoff2(data: Uint8Array): Promise<Uint8Array> {
+  const { compress } = await import("woff2-encoder");
+  return compress(data);
+}
+
+function readSignature(data: Uint8Array): string {
+  if (data.byteLength < 4) {
+    return "";
+  }
+  return String.fromCharCode(data[0], data[1], data[2], data[3]);
+}
+
+function detectSfntFormat(data: Uint8Array): SfntFontFormat {
+  const signature = readSignature(data);
+  if (signature === "OTTO") {
+    return "otf";
+  }
+  if (signature === "\0\x01\0\0" || signature === "true" || signature === "typ1") {
+    return "ttf";
+  }
+  throw new Error(`Unsupported font format. Please upload one of: ${SUPPORTED_FONT_FORMATS}.`);
+}
+
+function detectInputFormat(data: Uint8Array): InputFontFormat {
+  const signature = readSignature(data);
+  if (signature === "wOF2") {
+    return "woff2";
+  }
+  if (signature === "wOFF") {
+    return "woff";
+  }
+  return detectSfntFormat(data);
+}
+
+function toExactArrayBuffer(data: Uint8Array): ArrayBuffer {
+  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+}
+
+export async function normalizeFontData(data: Uint8Array): Promise<NormalizedFontData> {
+  const inputFormat = detectInputFormat(data);
+  let sfntData = data;
+
+  try {
+    if (inputFormat === "woff2") {
+      sfntData = await decodeWoff2(data);
+    } else if (inputFormat === "woff") {
+      sfntData = await woffDecode(data);
+    }
+  } catch (error) {
+    const label = inputFormat.toUpperCase();
+    const reason = error instanceof Error ? ` ${error.message}` : "";
+    throw new Error(
+      `Failed to decode ${label} font.${reason} Please upload a valid ${label} file.`,
+    );
+  }
+
+  const sfntFormat = detectSfntFormat(sfntData);
+  return {
+    originalData: data,
+    sfntData,
+    inputFormat,
+    sfntFormat,
+  };
 }
 
 export async function initWasm(): Promise<void> {
   if (wasmInitialized) return;
-  const response = await fetch(`${import.meta.env.BASE_URL}hb-subset.wasm`);
+  const baseUrl = import.meta.env?.BASE_URL ?? "/";
+  const response = await fetch(`${baseUrl}hb-subset.wasm`);
   await init(response);
   wasmInitialized = true;
 }
@@ -45,12 +140,12 @@ export async function initWasm(): Promise<void> {
 export async function parseFont(file: File): Promise<ParsedFont> {
   const arrayBuffer = await file.arrayBuffer();
   const data = new Uint8Array(arrayBuffer);
+  const normalized = await normalizeFontData(data);
 
-  const font = opentype.parse(arrayBuffer);
+  const font = opentype.parse(toExactArrayBuffer(normalized.sfntData));
   if (!font) {
     throw new Error("Failed to parse font file");
   }
-
   const metadata: FontMetadata = {
     familyName: font.names.fontFamily?.en || "Unknown",
     subfamilyName: font.names.fontSubfamily?.en || "",
@@ -117,10 +212,11 @@ export async function parseFont(file: File): Promise<ParsedFont> {
   glyphs.sort((a, b) => a.codePoint - b.codePoint);
 
   return {
+    ...normalized,
     metadata,
     glyphs,
     originalSize: data.byteLength,
-    originalData: data,
+    defaultOutputFormat: normalized.inputFormat === "woff2" ? "woff2" : "sfnt",
     opentypeFont: font,
   };
 }
@@ -128,17 +224,29 @@ export async function parseFont(file: File): Promise<ParsedFont> {
 export async function subsetFont(
   fontData: Uint8Array,
   keepCodePoints: number[],
-): Promise<Uint8Array> {
+  options: SubsetFontOptions,
+): Promise<SubsetFontResult> {
   await initWasm();
 
-  const text = keepCodePoints.map((cp) => String.fromCodePoint(cp)).join("");
-
-  const result = await subset(fontData, {
-    text,
+  const subsetSfnt = await subset(fontData, {
+    unicodes: keepCodePoints,
     noHinting: false,
   });
 
-  return result;
+  if (options.outputFormat === "woff2") {
+    const data = await encodeWoff2(subsetSfnt);
+    return {
+      data,
+      extension: "woff2",
+      mimeType: "font/woff2",
+    };
+  }
+
+  return {
+    data: subsetSfnt,
+    extension: options.sfntFormat,
+    mimeType: "font/sfnt",
+  };
 }
 
 export function getCategories(glyphs: GlyphInfo[]): Map<string, number> {
@@ -249,8 +357,12 @@ export function estimateSubsetSize(
   return Math.round(overhead + (originalSize - overhead) * glyphRatio);
 }
 
-export function downloadFile(data: Uint8Array, filename: string) {
-  const blob = new Blob([data as BlobPart], { type: "font/sfnt" });
+export function downloadFile(
+  data: Uint8Array,
+  filename: string,
+  mimeType: SubsetFontResult["mimeType"] = "font/sfnt",
+) {
+  const blob = new Blob([data as BlobPart], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

@@ -14,7 +14,7 @@
 
 ![FontTrim editor](docs/editor-viewport.png)
 
-FontTrim is a browser-based tool that lets you inspect every glyph in a font file, pick exactly the characters you need, and export a smaller subset — no server, no uploads, no privacy concerns. Subsetting runs entirely client-side using [HarfBuzz](https://harfbuzz.github.io/) compiled to WASM.
+FontTrim is a browser-based tool that lets you inspect every glyph in a font file, pick exactly the characters you need, and export a smaller subset as SFNT (`.ttf`/`.otf`) or WOFF2 — no server, no uploads, no privacy concerns. Subsetting runs entirely client-side using [HarfBuzz](https://harfbuzz.github.io/) compiled to WASM.
 
 ## Features
 
@@ -24,6 +24,7 @@ FontTrim is a browser-based tool that lets you inspect every glyph in a font fil
 - **Detect from text** — Paste your content and FontTrim selects only the glyphs it uses
 - **Live preview** — Type any text and see it rendered in the loaded font at any size
 - **Size estimation** — See original vs. trimmed size and glyph counts before downloading
+- **Format-aware export** — Import TTF, OTF, WOFF, or WOFF2 and download trimmed SFNT (`.ttf`/`.otf`) or WOFF2 output
 - **Privacy first** — Font data never leaves your browser; all processing is local via WASM
 - **Dark UI** — Focused, low-distraction interface built for long glyph-selection sessions
 
@@ -37,7 +38,7 @@ Drop a `.ttf`, `.otf`, `.woff`, or `.woff2` file to get started.
 
 ### Editor
 
-Browse glyphs, filter by category, toggle selection, preview the font, and download the trimmed file.
+Browse glyphs, filter by category, toggle selection, preview the font, choose SFNT or WOFF2 output, and download the trimmed file.
 
 ![Editor with font loaded](docs/editor-viewport.png)
 
@@ -78,19 +79,20 @@ Output goes to `dist/`. Deploy it anywhere that serves static files — no serve
 
 ## How It Works
 
-1. **Parse** — `opentype.js` extracts glyph metadata (codepoints, names, paths, metrics).
+1. **Normalize & parse** — TTF/OTF files are parsed directly; WOFF and WOFF2 uploads are decoded to SFNT bytes before `opentype.js` extracts glyph metadata (codepoints, names, paths, metrics).
 2. **Browse & select** — The UI renders each glyph as a toggleable cell. Quick-action presets and text-detection help narrow selection.
-3. **Subset** — When you hit *Download*, the selected codepoints are sent to HarfBuzz WASM, which produces a conformant subsetted OpenType font.
-4. **Download** — The trimmed `.ttf` is saved directly to disk.
+3. **Subset** — When you hit _Download_, the selected codepoints are sent to HarfBuzz WASM, which produces a conformant subsetted OpenType font.
+4. **Download** — The trimmed font is saved directly to disk as SFNT (`.ttf`/`.otf`) or encoded to WOFF2 (`.woff2`).
 
 ## Tech Stack
 
-| Layer | Library |
-|-------|---------|
-| UI | React 19, Tailwind CSS 4 |
-| Font parsing | [opentype.js](https://opentype.js.org/) |
-| Font subsetting | [hb-subset-wasm](https://github.com/nicktomlin/hb-subset-wasm) (HarfBuzz → WASM) |
-| Build | Vite, TypeScript |
+| Layer                         | Library                                                                                                                                             |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UI                            | React 19, Tailwind CSS 4                                                                                                                            |
+| Font parsing                  | [opentype.js](https://opentype.js.org/)                                                                                                             |
+| Font import/export conversion | [woff-lib](https://github.com/countertype/woff-lib) (WOFF decode), [woff2-encoder](https://github.com/itskyedo/woff2-encoder) (WOFF2 decode/encode) |
+| Font subsetting               | [hb-subset-wasm](https://github.com/nicktomlin/hb-subset-wasm) (HarfBuzz → WASM)                                                                    |
+| Build                         | Vite, TypeScript                                                                                                                                    |
 
 ## License
 
